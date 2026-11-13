@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -74,6 +75,46 @@ class TimeDepositApiIntegrationTest {
 
         mockMvc.perform(post("/api/time-deposits/update-balances"))
             .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void swagger_ui_and_openapi_spec_document_exactly_two_business_operations() throws Exception {
+        mockMvc.perform(get("/swagger-ui/index.html"))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get("/v3/api-docs"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.paths", aMapWithSize(2)))
+            .andExpect(jsonPath("$.paths['/api/time-deposits']", aMapWithSize(1)))
+            .andExpect(jsonPath("$.paths['/api/time-deposits/update-balances']", aMapWithSize(1)))
+            .andExpect(jsonPath("$.paths['/api/time-deposits'].get.summary")
+                .value("List time deposits"))
+            .andExpect(jsonPath("$.paths['/api/time-deposits'].get.description")
+                .value("Returns all time deposits, including each deposit's associated withdrawals."))
+            .andExpect(jsonPath("$.paths['/api/time-deposits'].get.responses['200'].description")
+                .value("Time deposits retrieved successfully"))
+            .andExpect(jsonPath("$.paths['/api/time-deposits'].get.responses['200'].content['application/json'].schema.type")
+                .value("array"))
+            .andExpect(jsonPath("$.paths['/api/time-deposits'].get.responses['200'].content['application/json'].schema.items.$ref")
+                .value("#/components/schemas/TimeDeposit"))
+            .andExpect(jsonPath("$.paths['/api/time-deposits/update-balances'].post.summary")
+                .value("Update all time deposit balances"))
+            .andExpect(jsonPath("$.paths['/api/time-deposits/update-balances'].post.description")
+                .value("Applies the existing interest calculation to every persisted time deposit and saves the results."))
+            .andExpect(jsonPath("$.paths['/api/time-deposits/update-balances'].post.responses['204'].description")
+                .value("All balances updated successfully"))
+            .andExpect(jsonPath("$.components.schemas.TimeDeposit.properties", aMapWithSize(5)))
+            .andExpect(jsonPath("$.components.schemas.TimeDeposit.properties.id.type").value("integer"))
+            .andExpect(jsonPath("$.components.schemas.TimeDeposit.properties.planType.type").value("string"))
+            .andExpect(jsonPath("$.components.schemas.TimeDeposit.properties.balance.type").value("number"))
+            .andExpect(jsonPath("$.components.schemas.TimeDeposit.properties.days.type").value("integer"))
+            .andExpect(jsonPath("$.components.schemas.TimeDeposit.properties.withdrawals.type").value("array"))
+            .andExpect(jsonPath("$.components.schemas.TimeDeposit.properties.withdrawals.items.$ref")
+                .value("#/components/schemas/Withdrawal"))
+            .andExpect(jsonPath("$.components.schemas.Withdrawal.properties", aMapWithSize(3)))
+            .andExpect(jsonPath("$.components.schemas.Withdrawal.properties.amount.type").value("number"))
+            .andExpect(jsonPath("$.components.schemas.Withdrawal.properties.date.type").value("string"))
+            .andExpect(jsonPath("$.components.schemas.Withdrawal.properties.date.format").value("date"));
     }
 
     @Test
