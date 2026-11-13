@@ -12,8 +12,7 @@ public class TimeDepositCalculator {
     );
 
     public void updateBalance(List<TimeDeposit> xs) {
-        for (int i = 0; i < xs.size(); i++) {
-            TimeDeposit deposit = xs.get(i);
+        for (TimeDeposit deposit : xs) {
             double interest = 0;
 
             if (deposit.getDays() > 30) {
@@ -26,7 +25,7 @@ public class TimeDepositCalculator {
             }
 
             double a2d = deposit.getBalance()
-                + (new BigDecimal(interest).setScale(2, RoundingMode.HALF_UP)).doubleValue();
+                    + (new BigDecimal(interest).setScale(2, RoundingMode.HALF_UP)).doubleValue();
             deposit.setBalance(a2d);
         }
     }
