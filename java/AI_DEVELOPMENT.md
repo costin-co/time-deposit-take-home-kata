@@ -1,55 +1,44 @@
 # AI-Assisted Development
 
-## 1. Tools and Setup
+## Tools and configuration
 
-This project uses a lightweight, human-in-the-loop AI-assisted development workflow.
+- GitHub Copilot Agent in IntelliJ IDEA was used for coding assistance.
+- ChatGPT was used for planning and code review.
+- The exact Copilot model is **not recorded** in the available project configuration.
+- `java/AGENTS.md` is the project-specific agent instruction file. It sets a senior Java backend engineer role and requires reading the README; preserving `TimeDepositCalculator.updateBalance` behavior and signature and avoiding breaking changes to `TimeDeposit`; writing characterization tests before refactoring; preserving interest boundaries and rounding; keeping domain logic independent of infrastructure; documenting ambiguous assumptions; and only reporting tests that were actually run.
+- No additional checked-in Copilot-specific configuration was found.
 
-**Tools:**
-- ChatGPT (OpenAI) — architecture discussions, code review, refactoring suggestions, and test case design.
-- IntelliJ IDEA — local development and code inspection.
-- Apache Maven — build and automated test execution.
-- Git and GitHub — version control and submission.
+## Workflow
 
-No autonomous agent framework or external orchestration infrastructure is required.
+AI analyzes a task and proposes an implementation plan. A human reviews and approves the proposal before implementation. The changes are then reviewed by a human and validated with relevant tests; verified work is organized into atomic commits. The human makes final architecture and validation decisions.
 
-## 2. Configuration
+## AI-assisted tasks
 
-The `AGENTS.md` file contains the engineering rules and constraints used to guide AI assistance.
+AI assistance was used for:
+- Characterization tests: to capture the existing calculator behavior before refactoring.
+- Strategy Pattern refactoring: to separate plan-specific interest rules and improve extensibility.
+- JPA/H2 persistence: to implement entity mappings, repositories, and persistence tests.
+- REST API: to implement the controller, service, DTOs, mapper, and integration tests.
+- OpenAPI documentation: to document the two required endpoints and verify the generated contract.
 
-The same instructions are provided to ChatGPT as development context.
+AI accelerated implementation and test generation, while architectural decisions, behavior preservation, code review, and final validation remained under human control.
 
-The AI assistant does not have unrestricted access to the local development environment. Suggested changes are reviewed and applied by the developer.
+## Human decisions and validation
 
-## 3. Development Workflow
+Human review prioritized preserving the existing calculator behavior, public signature, interest boundaries, and rounding. The persistence bridge converts `BigDecimal` balances to the existing `Double` domain representation and maps results back to two-decimal `BigDecimal` values. Withdrawals remain associated through the existing unidirectional JPA relationship and are not deducted from balances.
 
-1. Review the README and existing implementation.
-2. Use AI to identify potential refactoring opportunities and edge cases.
-3. Add characterization tests for existing behavior.
-4. Review and implement refactoring suggestions.
-5. Run tests locally using Maven.
-6. Review test failures and adjust the implementation.
-7. Commit verified changes to Git.
+Integration-test improvements remove class-level test transactions so MockMvc requests exercise the service transaction and committed state. Cleanup deletes withdrawals before deposits to respect the foreign key. Balance assertions are keyed by deposit ID; tests also verify withdrawals remain unchanged and repeated POST calls persist cumulative results.
 
-## 4. AI-Assisted Activities
+The OpenAPI integration test verifies that `/swagger-ui/index.html` is served and that `/v3/api-docs` contains exactly the two business operations and their response schemas. Additionally, Swagger UI was manually opened in a browser to verify that both business operations and their response schemas were displayed correctly.
 
-| Activity | AI Contribution | Human Responsibility |
-|---|---|---|
-| Code analysis | Identify code smells and design risks | Validate findings |
-| Test design | Suggest test scenarios and edge cases | Review and execute tests |
-| Refactoring | Suggest design patterns and implementation options | Choose and implement the solution |
-| Architecture | Compare REST and persistence approaches | Make final architecture decisions |
-| Documentation | Assist with technical documentation | Verify accuracy |
+## Reproducing the workflow
 
-## 5. Verification
+1. Use Java 17 or newer, Maven, IntelliJ IDEA, and the GitHub Copilot plugin with Agent mode enabled. Use ChatGPT for planning or review as needed.
+2. Keep `AGENTS.md` and `AI_DEVELOPMENT.md` in the `java/` directory. Before each major implementation stage, have the agent read `java/AGENTS.md` and `README.md` from the repository root.
+3. Use a prompt such as:
 
-AI-generated suggestions are not accepted without review.
+   > Read java/AGENTS.md and README.md from the repository root. Analyze the requested change and propose an implementation plan before modifying any files. Preserve existing behavior and public APIs. Add relevant tests and report their results. Do not commit changes without human approval.
 
-The final implementation is validated using automated tests and local build execution.
+4. Review and approve the proposed plan before edits. Review the changes, run the relevant Maven tests, and commit reviewed changes in atomic units only with human approval.
 
-## 6. Limitations
-
-AI output may contain incorrect assumptions, implementation errors, or unnecessary abstractions.
-
-All suggestions are reviewed against the project requirements, existing behavior, and test results.
-
-The developer remains responsible for the final solution.
+The recorded test command for the API, persistence, calculator, and OpenAPI changes was `mvn clean test`.
