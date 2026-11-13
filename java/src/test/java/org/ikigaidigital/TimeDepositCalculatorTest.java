@@ -8,6 +8,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class TimeDepositCalculatorTest {
 
@@ -132,6 +133,28 @@ public class TimeDepositCalculatorTest {
     }
 
     @Test
+    public void null_plan_type_throws_when_days_are_greater_than_30() {
+        TimeDepositCalculator calc = new TimeDepositCalculator();
+        List<TimeDeposit> plans = new ArrayList<>(List.of(
+            new TimeDeposit(4, null, 1000.0, 31)
+        ));
+
+        assertThatThrownBy(() -> calc.updateBalance(plans))
+            .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    public void null_plan_type_does_not_throw_when_days_are_at_most_30() {
+        TimeDepositCalculator calc = new TimeDepositCalculator();
+        List<TimeDeposit> plans = new ArrayList<>(List.of(
+            new TimeDeposit(4, null, 1000.0, 30)
+        ));
+
+        assertThatCode(() -> calc.updateBalance(plans)).doesNotThrowAnyException();
+        assertThat(plans.get(0).getBalance()).isEqualTo(1000.0);
+    }
+
+    @Test
     public void plan_type_is_case_sensitive() {
         TimeDepositCalculator calc = new TimeDepositCalculator();
         List<TimeDeposit> plans = new ArrayList<>(List.of(
@@ -156,19 +179,15 @@ public class TimeDepositCalculatorTest {
     }
 
     @Test
-    public void rounding_edge_case_with_new_big_decimal_double_behavior() {
+    public void basic_plan_rounding_uses_exact_binary_double_value() {
         TimeDepositCalculator calc = new TimeDepositCalculator();
         List<TimeDeposit> plans = new ArrayList<>(List.of(
-            new TimeDeposit(5, "basic", 1000.0, 31),
-            new TimeDeposit(6, "student", 1000.0, 31),
-            new TimeDeposit(7, "premium", 1000.0, 46)
+            new TimeDeposit(5, "basic", 174.0, 31)
         ));
 
         calc.updateBalance(plans);
 
-        assertThat(plans.get(0).getBalance()).isEqualTo(1000.83);
-        assertThat(plans.get(1).getBalance()).isEqualTo(1002.50);
-        assertThat(plans.get(2).getBalance()).isEqualTo(1004.17);
+        assertThat(plans.get(0).getBalance()).isEqualTo(174.14);
     }
 
     @Test
@@ -208,24 +227,5 @@ public class TimeDepositCalculatorTest {
 
         calc.updateBalance(plans);
         assertThat(plans.get(0).getBalance()).isEqualTo(1001.6600000000001);
-    }
-
-    @Test
-    void repeated_calls_accumulate_interest() {
-        TimeDeposit deposit =
-                new TimeDeposit(20, "basic", 1000.0, 31);
-
-        TimeDepositCalculator calculator =
-                new TimeDepositCalculator();
-
-        calculator.updateBalance(List.of(deposit));
-
-        assertThat(deposit.getBalance())
-                .isEqualTo(1000.83);
-
-        calculator.updateBalance(List.of(deposit));
-
-        assertThat(deposit.getBalance())
-                .isEqualTo(1001.6600000000001);
     }
 }
